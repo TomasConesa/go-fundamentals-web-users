@@ -3,6 +3,7 @@ package transport
 import (
 	"context"
 	"net/http"
+	"strings"
 )
 
 type Endpoint func(ctx context.Context, request any) (any, error)
@@ -52,4 +53,17 @@ func (t *transport) Server(
 		encodeError(t.ctx, err, t.w)
 		return
 	}
+}
+
+func CleanUrl(url string) ([]string, int) {
+	if url[0] != '/' { // Slash / al inicio de la url
+		url = "/" + url
+	}
+	if url[len(url)-1] != '/' { // Slash / al final de la url
+		url += "/"
+	}
+
+	partsUrl := strings.Split(url, "/")
+
+	return partsUrl, len(partsUrl)
 }

@@ -2,7 +2,9 @@ package user
 
 import (
 	"context"
+	"errors"
 	"log"
+	"slices"
 
 	"github.com/TomasConesa/go-fundamentals-web-users/internal/domain"
 )
@@ -16,6 +18,7 @@ type (
 	Repository interface {
 		Create(ctx context.Context, user *domain.User) error
 		GetAll(ctx context.Context) ([]domain.User, error)
+		GetById(ctx context.Context, id uint64) (*domain.User, error)
 	}
 
 	repo struct {
@@ -35,11 +38,20 @@ func (r *repo) Create(ctx context.Context, user *domain.User) error {
 	r.db.MaxUserId++
 	user.Id = r.db.MaxUserId
 	r.db.Users = append(r.db.Users, *user)
-	r.log.Println("repository create")
 	return nil
 }
 
 func (r *repo) GetAll(ctx context.Context) ([]domain.User, error) {
-	r.log.Println("repository get all")
 	return r.db.Users, nil
+}
+
+func (r *repo) GetById(ctx context.Context, id uint64) (*domain.User, error) {
+	index := slices.IndexFunc(r.db.Users, func(u domain.User) bool {
+		return u.Id == id
+	})
+
+	if index < 0 {
+		return nil, errors.New("user doesn't exist")
+	}
+	return &r.db.Users[index], nil
 }
