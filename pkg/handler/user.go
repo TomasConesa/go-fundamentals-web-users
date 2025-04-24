@@ -59,6 +59,12 @@ func UserServer(ctx context.Context, endpoint user.Endpoint) func(w http.Respons
 				end = endpoint.Create
 				deco = decodeCreateUser
 			}
+		case http.MethodPatch:
+			switch pathSize {
+			case 4:
+				end = endpoint.Update
+				deco = decodeUpdateUser
+			}
 		}
 		if end != nil && deco != nil {
 			tran.Server(
@@ -94,6 +100,23 @@ func decodeCreateUser(ctx context.Context, r *http.Request) (any, error) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("invalid request format: '%v'", err.Error())
 	}
+
+	return req, nil
+}
+
+func decodeUpdateUser(ctx context.Context, r *http.Request) (any, error) {
+	var req user.UpdateReq
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("invalid request format: '%v'", err.Error())
+	}
+
+	params := ctx.Value(paramsKey).(map[string]string)
+	id, err := strconv.ParseUint(params["userId"], 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	req.Id = id
 
 	return req, nil
 }
