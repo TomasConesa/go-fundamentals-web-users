@@ -14,7 +14,15 @@ import (
 func main() {
 	server := http.NewServeMux()
 
-	db := bootstrap.NewDb()
+	db, err := bootstrap.NewDb()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close() //Cierro la conexión a la base de datos
+
+	if err := db.Ping(); err != nil {
+		log.Fatal(err)
+	}
 
 	logger := bootstrap.NewLogger()
 	repo := user.NewRepo(db, logger)
