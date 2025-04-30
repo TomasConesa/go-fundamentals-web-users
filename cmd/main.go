@@ -5,13 +5,23 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/TomasConesa/go-fundamentals-web-users/internal/user"
 	"github.com/TomasConesa/go-fundamentals-web-users/pkg/bootstrap"
 	"github.com/TomasConesa/go-fundamentals-web-users/pkg/handler"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+
+	/* 	err := godotenv.Load() // Como ya tengo un archivo .env no hace falta pasarle nada
+	   	if err != nil {
+	   		log.Fatal("Error loading .env file")
+	   	} */
+
+	_ = godotenv.Load()
+
 	server := http.NewServeMux()
 
 	db, err := bootstrap.NewDb()
@@ -20,7 +30,7 @@ func main() {
 	}
 	defer db.Close() //Cierro la conexión a la base de datos
 
-	if err := db.Ping(); err != nil {
+	if err := db.Ping(); err != nil { // Para chequear la conexipon del usuario correspondiente a la base de datos
 		log.Fatal(err)
 	}
 
@@ -32,6 +42,7 @@ func main() {
 
 	handler.NewUserHTTPServer(ctx, server, user.MakeEndpoints(ctx, service))
 
-	fmt.Println("Server started at port 8080")
-	log.Fatal(http.ListenAndServe(":8080", server))
+	port := os.Getenv("PORT")
+	fmt.Println("Server started at port ", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), server))
 }

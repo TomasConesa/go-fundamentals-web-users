@@ -3,9 +3,11 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/TomasConesa/go-fundamentals-response/response"
@@ -38,6 +40,8 @@ func UserServer(ctx context.Context, endpoint user.Endpoint) func(w http.Respons
 			params["userId"] = path[2]
 		}
 		ctx = context.WithValue(ctx, paramsKey, params) // Agrego la clave y el valor params al contexto. Guarde la clave "params" en una constante para no pasarle el string directamente acá porque es una mala práctica
+
+		params["token"] = r.Header.Get("Authorization")
 
 		tran := transport.New(w, r, ctx)
 
@@ -81,14 +85,22 @@ func UserServer(ctx context.Context, endpoint user.Endpoint) func(w http.Respons
 }
 
 func decodeGetAllUser(ctx context.Context, r *http.Request) (any, error) {
+	params := ctx.Value(paramsKey).(map[string]string)
+	if err := tokenVerify(params["token"]); err != nil {
+		return nil, response.Unauthorized(err.Error())
+	}
 	return nil, nil
 }
 
 func decodeGetUserById(ctx context.Context, r *http.Request) (any, error) {
-	params := ctx.Value(paramsKey).(map[string]string) // Para obtener el valor la clave params. Parseo con el map porque el metodo Value devuelve un any
+	params := ctx.Value(paramsKey).(map[string]string) // Para obtener el valor de la clave params. Parseo con el map porque el metodo Value devuelve un any
+	if err := tokenVerify(params["token"]); err != nil {
+		return nil, response.Unauthorized(err.Error())
+	}
+
 	id, err := strconv.ParseUint(params["userId"], 10, 64)
 	if err != nil {
-		return nil, err
+		return nil, response.BadRequest(err.Error())
 	}
 
 	return user.GetReq{
@@ -97,9 +109,15 @@ func decodeGetUserById(ctx context.Context, r *http.Request) (any, error) {
 }
 
 func decodeCreateUser(ctx context.Context, r *http.Request) (any, error) {
+
+	params := ctx.Value(paramsKey).(map[string]string)
+	if err := tokenVerify(params["token"]); err != nil {
+		return nil, response.Unauthorized(err.Error())
+	}
+
 	var req user.CreateReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, fmt.Errorf("invalid request format: '%v'", err.Error())
+		return nil, response.BadRequest(fmt.Sprintf("invalid request format: '%v'", err.Error()))
 	}
 
 	return req, nil
@@ -109,10 +127,14 @@ func decodeUpdateUser(ctx context.Context, r *http.Request) (any, error) {
 	var req user.UpdateReq
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, fmt.Errorf("invalid request format: '%v'", err.Error())
+		return nil, response.BadRequest(fmt.Sprintf("invalid request format: '%v'", err.Error()))
 	}
 
 	params := ctx.Value(paramsKey).(map[string]string)
+	if err := tokenVerify(params["token"]); err != nil {
+		return nil, response.Unauthorized(err.Error())
+	}
+
 	id, err := strconv.ParseUint(params["userId"], 10, 64)
 	if err != nil {
 		return nil, err
@@ -144,4 +166,11 @@ func InvalidMethod(w http.ResponseWriter) {
 	status := http.StatusNotFound
 	w.WriteHeader(status)
 	fmt.Fprintf(w, `{"status": %d, "message": "method doesn't exist"}`, status)
+}
+
+func tokenVerify(token string) error {
+	if os.Getenv("TOKEN") != token {
+		return errors.New("invalid token")
+	}
+	return nil
 }
