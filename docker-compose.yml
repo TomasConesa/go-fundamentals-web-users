@@ -6,7 +6,7 @@ services:
     container_name: go-course-users
     build:
       context: ./.dockers/mysql
-      dockerfile: dockerfile
+      dockerfile: Dockerfile
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: go_course_users  
