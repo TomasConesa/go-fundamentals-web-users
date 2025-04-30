@@ -1,5 +1,7 @@
 package handler
 
+// Utilizo el handler de forma nativa de go y en el otro caso utilizando el framework gin
+/*
 import (
 	"context"
 	"encoding/json"
@@ -174,3 +176,4 @@ func tokenVerify(token string) error {
 	}
 	return nil
 }
+*/
